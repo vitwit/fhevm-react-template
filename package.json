@@ -8,7 +8,9 @@
   },
   "workspaces": {
     "packages": [
-      "packages/*"
+      "packages/fhevm-sdk",
+      "packages/fhevm-react",
+      "packages/fhevm-node-app"
     ]
   },
   "scripts": {

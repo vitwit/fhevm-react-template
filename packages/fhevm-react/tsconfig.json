@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@fhevm-sdk": ["../fhevm-sdk/src/index.ts"],
+      "@fhevm-sdk/*": ["../fhevm-sdk/src/*"]
+    }
+  },
+  "include": ["src"]
+}
