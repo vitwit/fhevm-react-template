@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -7,22 +7,119 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' }
+      { text: "", link: "/" },
+      {
+        text: "Packages",
+        items: [
+          {
+            text: "Overview",
+            link: "/packages/",
+          },
+          {
+            text: "Core",
+            link: "/packages/core/",
+          },
+          {
+            text: "React",
+            link: "/packages/react/",
+          },
+          {
+            text: "Vue",
+            link: "/packages/vue/",
+          },
+        ],
+      },
+      {
+        text: "Examples",
+        items: [
+          {
+            text: "Node",
+            link: "/examples/node/",
+          },
+          {
+            text: "React",
+            link: "examples/react/",
+          },
+          {
+            text: "Vue",
+            link: "/examples/vue/",
+          },
+        ],
+      },
+      {
+        text: "Resources",
+        items: [
+          { text: "FHEVM Docs", link: "https://docs.zama.ai" },
+          {
+            text: "GitHub",
+            link: "https://github.com/vitwit/fhevm-react-template",
+          },
+        ],
+      },
     ],
 
     sidebar: [
+      { text: "Getting Started", link: "/" },
       {
-        text: 'Examples',
+        text: "Packages",
+        link: "/packages/",
+        collapsed: false,
         items: [
-          { text: 'Markdown Examples', link: '/markdown-examples' },
-          { text: 'Runtime API Examples', link: '/api-examples' }
-        ]
-      }
+          {
+            text: "Core",
+            link: "/packages/core",
+          },
+          {
+            text: "React",
+            link: "/packages/react",
+          },
+          {
+            text: "Vue",
+            link: "/packages/vue",
+          },
+        ],
+      },
+      {
+        text: "Examples",
+        // link: "/examples/",
+        collapsed: false,
+        items: [
+          {
+            text: "Node",
+            link: "/examples/node",
+          },
+          {
+            text: "React",
+            link: "/examples/react",
+          },
+          {
+            text: "Vue",
+            link: "/examples/vue",
+          },
+        ],
+      },
     ],
 
+    // Show table of contents in right sidebar
+    outline: {
+      level: [2, 3], // Show h2 and h3 headings
+      label: "On this page",
+    },
+
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
-    ]
-  }
-})
+      {
+        icon: "github",
+        link: "https://github.com/vitwit/fhevm-react-template",
+      },
+    ],
+
+    search: {
+      provider: "local",
+    },
+
+    docFooter: {
+      prev: "Previous",
+      next: "Next",
+    },
+  },
+});
