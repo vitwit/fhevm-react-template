@@ -1,4 +1,4 @@
-import { FhevmRelayerSDKType } from "../core/internal/FhevmTypes";
+import { FhevmRelayerSDKType } from "../internal/FhevmTypes.ts";
 
 /**
  * Extend the Window interface to include relayerSDK

@@ -1,3 +1,4 @@
 export * from "./context/FhevmProvider";
-export * from "./hooks/useFhevm";
-export * from "./components/EncryptDecrypt";
+export * from "./hooks/useEncrypt";
+export * from "./hooks/useDecrypt";
+export * from "./hooks/useFheSignature";

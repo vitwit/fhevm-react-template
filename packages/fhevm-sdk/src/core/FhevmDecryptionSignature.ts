@@ -3,8 +3,8 @@
  * Works in both browser and Node.js environments using standard wallets.
  */
 
-import { FhevmWallet } from "./internal/FhevmTypes";
-import { isBrowser, isNode } from "./../utils/env";
+import { FhevmWallet } from "../internal/FhevmTypes.js";
+import { isBrowser, isNode } from "./../utils/env.js";
 import { ethers } from "ethers";
 
 export class FhevmDecryptionSignature {

@@ -1,13 +1,16 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "nodenext",
+    "declaration": true,
     "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": ".",
-    "paths": {
-      "@fhevm-sdk": ["../fhevm-sdk/src/index.ts"],
-      "@fhevm-sdk/*": ["../fhevm-sdk/src/*"]
-    }
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "src/types"
+  ]
 }

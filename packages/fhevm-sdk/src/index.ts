@@ -1,4 +1,8 @@
 // src/index.ts
-export * from "./core";                     // exports core modules
-export { FhevmDecryptionSignature } from "./core/FhevmDecryptionSignature";
-export * from "./core/storage";                  // if you have a storage module
+
+// Export core SDK modules
+export * from "./core/index.js";
+
+// Export storage module (or other modules)
+export * from "./modules/storage/index.js";
+export * from "./internal/index.js";

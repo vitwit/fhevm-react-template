@@ -1,0 +1,22 @@
+{
+  "name": "@fhevm/vue",
+  "version": "0.1.0",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc --project tsconfig.json"
+  },
+  "peerDependencies": {
+    "vue": "^3.3.0",
+    "ethers": "^6.7.0",
+    "@fhevm/sdk": "workspace:*"
+  }
+}

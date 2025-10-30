@@ -10,7 +10,11 @@
     "packages": [
       "packages/fhevm-sdk",
       "packages/fhevm-react",
-      "packages/fhevm-node-app"
+      "packages/fhevm-node-demo",
+      "packages/fhevm-vue-demo",
+      "packages/fhevm-next-demo",
+      "packages/fhevm-shared",
+      "packages/fhevm-vue"
     ]
   },
   "scripts": {
@@ -25,7 +29,9 @@
     "sdk:test": "pnpm --filter ./packages/fhevm-sdk test",
     "sdk:test:watch": "pnpm --filter ./packages/fhevm-sdk test:watch",
     "sdk:clean": "pnpm --filter ./packages/fhevm-sdk clean",
-    "generate": "ts-node ./scripts/generateTsAbis.ts",
+    "shared:build":"pnpm --filter ./packages/fhevm-shared build",
+    "react:build":"pnpm --filter ./packages/fhevm-react build",
+    "generate": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' ./scripts/generateContracts.ts",
     "hardhat:chain": "pnpm --filter ./packages/hardhat chain",
     "hardhat:check-types": "pnpm --filter ./packages/hardhat check-types",
     "hardhat:clean": "pnpm --filter ./packages/hardhat clean",

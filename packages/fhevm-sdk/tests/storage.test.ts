@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { GenericStringStorage } from "../src/core/storage/GenericStringStorage";
+import { GenericStringStorage } from "../src/modules/storage/GenericStringStorage";
 
 describe("GenericStringStorage", () => {
   it("sets, gets, and removes values correctly", async () => {
