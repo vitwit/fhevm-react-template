@@ -39,6 +39,9 @@ const FHECounter = abis.deployedContracts["11155111"]["FHECounter"];
 let contract: ethers.Contract | null = null;
 
 watchEffect(async () => {
+  if (!window.ethereum) {
+    return
+  }
   if (window.ethereum) {
     const provider = new BrowserProvider(window.ethereum);
     const signerInstance = await provider.getSigner();
@@ -53,6 +56,7 @@ async function getCounter() {
   busy.value = true;
 
   try {
+  // @ts-ignore
     const encrypted = await contract.getCount();
     const decrypted = await sdk.value.decrypt([encrypted], address.value, [FHECounter.address]);
     counter.value = Number(decrypted.plaintext);
@@ -69,6 +73,7 @@ async function increment() {
 
   try {
     const { handles, inputProof } = await encrypt([{ type: "u32", value: 1 }]);
+    // @ts-ignore
     const tx = await contract.increment(handles[0], inputProof);
     await tx.wait();
     await getCounter();
@@ -85,6 +90,7 @@ async function decrement() {
 
   try {
     const { handles, inputProof } = await encrypt([{ type: "u32", value: 1 }]);
+    // @ts-ignore
     const tx = await contract.decrement(handles[0], inputProof);
     await tx.wait();
     await getCounter();

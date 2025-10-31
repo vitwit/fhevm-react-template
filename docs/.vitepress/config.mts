@@ -20,6 +20,10 @@ export default defineConfig({
             link: "/packages/core/",
           },
           {
+            text: "Shared",
+            link: "/packages/shared",
+          },
+          {
             text: "React",
             link: "/packages/react/",
           },
@@ -68,6 +72,10 @@ export default defineConfig({
           {
             text: "Core",
             link: "/packages/core",
+          },
+           {
+            text: "Shared",
+            link: "/packages/shared",
           },
           {
             text: "React",

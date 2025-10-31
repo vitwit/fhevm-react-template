@@ -130,7 +130,19 @@ This will produce a JSON file (e.g. `abis.json`) in the shared directory:
 
 ```
 
-### 5. Connect MetaMask
+### 5. Build All Required Package
+```bash
+pnpm build-all # Note: Make sure to deploy the contract and generate the shared ABI before this step
+```
+
+### 6. Run Apps (Next.js/Vue/Ndde)
+You can now run your frontend app (Next.js/Vue) or Node-based backend.
+
+
+#### Example demos available here: [`➡️ Examples`](./examples.md)
+
+The current example demos have a demo contract, You may change that with your contract address if needed.
+### 7. Connect MetaMask 
 
 1. Open [http://localhost:3000](http://localhost:3000) in your browser
 2. Click "Connect Wallet" and select MetaMask

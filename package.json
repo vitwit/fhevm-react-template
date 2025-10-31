@@ -63,7 +63,9 @@
     "verify:sepolia": "pnpm hardhat:verify:sepolia",
     "docs:build": "pnpm --filter ./docs build",
     "docs:preview": "pnpm --filter ./docs preview",
-    "docs:dev": "pnpm --filter ./docs dev"
+    "docs:dev": "pnpm --filter ./docs dev",
+    "vue-demo:build": "pnpm --filter ./packages/fhevm-vue-demo build",
+    "build-all": "pnpm shared:build && pnpm sdk:build && pnpm react:build && pnpm vue:build"
   },
   "dependencies": {
     "hardhat-deploy": "^0.11.45"
