@@ -34,15 +34,15 @@ export default defineConfig({
         items: [
           {
             text: "Node",
-            link: "/examples/node/",
+            link: "/examples#node-js-demo",
           },
           {
-            text: "React",
-            link: "examples/react/",
+            text: "Next.js",
+            link: "examples#next-js-demo",
           },
           {
             text: "Vue",
-            link: "/examples/vue/",
+            link: "/examples#vue-js-demo",
           },
         ],
       },
@@ -86,15 +86,15 @@ export default defineConfig({
         items: [
           {
             text: "Node",
-            link: "/examples/node",
+            link: "/examples#node-js-demo",
           },
           {
-            text: "React",
-            link: "/examples/react",
+            text: "Next.js",
+            link: "/examples#next-js-demo",
           },
           {
             text: "Vue",
-            link: "/examples/vue",
+            link: "/examples#vue-js-demo",
           },
         ],
       },

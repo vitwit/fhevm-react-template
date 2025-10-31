@@ -1,186 +1,96 @@
-import { openDB, DBSchema, IDBPDatabase } from "idb";
+/**
+ * PublicKeyStorage
+ * -----------------
+ * Stores and retrieves FHEVM decryption signature data (public/private key,
+ * signature, timestamps, etc.) uniquely per user + contract set.
+ */
 
-type FhevmStoredPublicKey = {
-  publicKeyId: string;
-  publicKey: Uint8Array;
-};
+import { isBrowser, isNode } from "../utils/env.js";
+import { ethers } from "ethers";
+import type { FhevmDecryptionSignatureType } from "./FhevmTypes";
 
-type FhevmStoredPublicParams = {
-  publicParamsId: string;
-  publicParams: Uint8Array;
-};
+export class PublicKeyStorage {
+    private storage: Storage | Map<string, string>;
 
-interface PublicParamsDB extends DBSchema {
-  publicKeyStore: {
-    key: string;
-    value: {
-      acl: `0x${string}`;
-      value: FhevmStoredPublicKey;
-    };
-  };
-  paramsStore: {
-    key: string;
-    value: {
-      acl: `0x${string}`;
-      value: FhevmStoredPublicParams;
-    };
-  };
-}
-
-let __dbPromise: Promise<IDBPDatabase<PublicParamsDB>> | undefined = undefined;
-
-async function _getDB(): Promise<IDBPDatabase<PublicParamsDB> | undefined> {
-  if (__dbPromise) {
-    return __dbPromise;
-  }
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-  __dbPromise = openDB<PublicParamsDB>("fhevm", 1, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains("paramsStore")) {
-        db.createObjectStore("paramsStore", { keyPath: "acl" });
-      }
-      if (!db.objectStoreNames.contains("publicKeyStore")) {
-        db.createObjectStore("publicKeyStore", { keyPath: "acl" });
-      }
-    },
-  });
-  return __dbPromise;
-}
-
-type FhevmInstanceConfigPublicKey = {
-  data: Uint8Array | null;
-  id: string | null;
-};
-
-type FhevmInstanceConfigPublicParams = {
-  "2048": {
-    publicParamsId: string;
-    publicParams: Uint8Array;
-  };
-};
-
-function assertFhevmStoredPublicKey(
-  value: unknown
-): asserts value is FhevmStoredPublicKey | null {
-  if (typeof value !== "object") {
-    throw new Error(`FhevmStoredPublicKey must be an object`);
-  }
-  if (value === null) {
-    return;
-  }
-  if (!("publicKeyId" in value)) {
-    throw new Error(`FhevmStoredPublicKey.publicKeyId does not exist`);
-  }
-  if (typeof value.publicKeyId !== "string") {
-    throw new Error(`FhevmStoredPublicKey.publicKeyId must be a string`);
-  }
-  if (!("publicKey" in value)) {
-    throw new Error(`FhevmStoredPublicKey.publicKey does not exist`);
-  }
-  if (!(value.publicKey instanceof Uint8Array)) {
-    throw new Error(`FhevmStoredPublicKey.publicKey must be a Uint8Array`);
-  }
-}
-
-function assertFhevmStoredPublicParams(
-  value: unknown
-): asserts value is FhevmStoredPublicParams | null {
-  if (typeof value !== "object") {
-    throw new Error(`FhevmStoredPublicParams must be an object`);
-  }
-  if (value === null) {
-    return;
-  }
-  if (!("publicParamsId" in value)) {
-    throw new Error(`FhevmStoredPublicParams.publicParamsId does not exist`);
-  }
-  if (typeof value.publicParamsId !== "string") {
-    throw new Error(`FhevmStoredPublicParams.publicParamsId must be a string`);
-  }
-  if (!("publicParams" in value)) {
-    throw new Error(`FhevmStoredPublicParams.publicParams does not exist`);
-  }
-  if (!(value.publicParams instanceof Uint8Array)) {
-    throw new Error(
-      `FhevmStoredPublicParams.publicParams must be a Uint8Array`
-    );
-  }
-}
-
-export async function publicKeyStorageGet(aclAddress: `0x${string}`): Promise<{
-  publicKey?: FhevmInstanceConfigPublicKey;
-  publicParams: FhevmInstanceConfigPublicParams | null;
-}> {
-  const db = await _getDB();
-  if (!db) {
-    return { publicParams: null };
-  }
-
-  let storedPublicKey: FhevmStoredPublicKey | null = null;
-  try {
-    const pk = await db.get("publicKeyStore", aclAddress);
-    if (pk?.value) {
-      assertFhevmStoredPublicKey(pk.value);
-      storedPublicKey = pk.value;
+    constructor() {
+        if (isBrowser() && typeof window.localStorage !== "undefined") {
+            this.storage = window.localStorage;
+        } else if (isNode()) {
+            this.storage = new Map<string, string>();
+        } else {
+            throw new Error("PublicKeyStorage: Unknown environment");
+        }
     }
-  } catch {
-    //
-  }
 
-  let storedPublicParams: FhevmStoredPublicParams | null = null;
-  try {
-    const pp = await db.get("paramsStore", aclAddress);
-    if (pp?.value) {
-      assertFhevmStoredPublicParams(pp.value);
-      storedPublicParams = pp.value;
+    /**
+     * Build a deterministic storage key per user + contract set.
+     */
+    private buildStorageKey(userAddress: string, contractAddresses: string[]): string {
+        if (!ethers.isAddress(userAddress)) {
+            throw new TypeError(`Invalid address ${userAddress}`);
+        }
+
+        const sorted = [...contractAddresses].sort();
+        const hash = ethers.id(JSON.stringify(sorted));
+        return `fhevmPublicKey:${userAddress}:${hash}`;
     }
-  } catch {
-    //
-  }
 
-  const publicKeyData = storedPublicKey?.publicKey;
-  const publicKeyId = storedPublicKey?.publicKeyId;
-  const publicParams = storedPublicParams
-    ? {
-        "2048": storedPublicParams,
-      }
-    : null;
+    /**
+     * Save the complete FhevmDecryptionSignatureType data
+     */
+    public set(userAddress: string, contractAddresses: string[], data: FhevmDecryptionSignatureType): void {
+        const key = this.buildStorageKey(userAddress, contractAddresses);
+        const value = JSON.stringify(data);
 
-  let publicKey: FhevmInstanceConfigPublicKey | undefined = undefined;
+        if (this.storage instanceof Map) {
+            this.storage.set(key, value);
+        } else {
+            this.storage.setItem(key, value);
+        }
+    }
 
-  if (publicKeyId && publicKeyData) {
-    publicKey = {
-      id: publicKeyId,
-      data: publicKeyData,
-    };
-  }
+    /**
+     * Retrieve stored data (parsed JSON)
+     */
+    public get(userAddress: string, contractAddresses: string[]): FhevmDecryptionSignatureType | null {
+        const key = this.buildStorageKey(userAddress, contractAddresses);
+        const result =
+            this.storage instanceof Map ? this.storage.get(key) ?? null : this.storage.getItem(key);
 
-  return {
-    ...(publicKey !== undefined && { publicKey }),
-    publicParams,
-  };
-}
+        if (!result) return null;
 
-export async function publicKeyStorageSet(
-  aclAddress: `0x${string}`,
-  publicKey: FhevmStoredPublicKey | null,
-  publicParams: FhevmStoredPublicParams | null
-) {
-  assertFhevmStoredPublicKey(publicKey);
-  assertFhevmStoredPublicParams(publicParams);
+        try {
+            return JSON.parse(result) as FhevmDecryptionSignatureType;
+        } catch {
+            return null;
+        }
+    }
 
-  const db = await _getDB();
-  if (!db) {
-    return;
-  }
+    /**
+     * Clear stored data for user + contract set
+     */
+    public clear(userAddress: string, contractAddresses: string[]): void {
+        const key = this.buildStorageKey(userAddress, contractAddresses);
 
-  if (publicKey) {
-    await db.put("publicKeyStore", { acl: aclAddress, value: publicKey });
-  }
+        if (this.storage instanceof Map) {
+            this.storage.delete(key);
+        } else {
+            this.storage.removeItem(key);
+        }
+    }
 
-  if (publicParams) {
-    await db.put("paramsStore", { acl: aclAddress, value: publicParams });
-  }
+    /**
+     * Optional: Clear all stored FHEVM public key data.
+     */
+    public clearAll(): void {
+        if (this.storage instanceof Map) {
+            this.storage.clear();
+        } else {
+            Object.keys(this.storage).forEach((key) => {
+                if (key.startsWith("fhevmPublicKey:")) {
+                    this.storage.delete(key);
+                }
+            });
+        }
+    }
 }
