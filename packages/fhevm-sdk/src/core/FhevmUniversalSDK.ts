@@ -1,6 +1,7 @@
 import { FhevmCore } from "./FhevmCore.js";
-import { EncryptionInput, FhevmConfig, FhevmWallet, RelayerEncryptedInput, TraceType } from "../internal/FhevmTypes.js";
+import { EncryptionInput, FhevmConfig, FhevmWallet, RelayerEncryptedInput, TraceType, ZamaNetworkConfig } from "../internal/FhevmTypes.js";
 import { isBrowser, isNode } from "../utils/env.js";
+import { PublicKeyStorage } from "../internal/PublicKeyStorage.js";
 
 /**
  * Universal SDK for FHEVM
@@ -9,6 +10,7 @@ import { isBrowser, isNode } from "../utils/env.js";
 export class FhevmUniversalSDK {
     private core?: FhevmCore;
     private trace?: TraceType;
+    private storage: PublicKeyStorage;
 
     /**
      * Initialize the universal SDK
@@ -17,17 +19,18 @@ export class FhevmUniversalSDK {
      * @param trace Optional trace function for logging
      */
     constructor(
-        private config: Record<string, unknown>,
+        private config: ZamaNetworkConfig,
         private wallet?: FhevmWallet,
         trace?: TraceType
     ) {
         this.trace = trace;
+        this.storage = new PublicKeyStorage();
     }
 
     /**
      * Initializes the SDK based on environment
      */
-    public async init(contractAddress: string, durationDays: number = 10): Promise<void> {
+    public async init(contractAddress: string, durationDays: number = 365): Promise<void> {
         this.trace?.("[FhevmUniversalSDK] init called");
 
         if (isBrowser()) {
@@ -37,7 +40,6 @@ export class FhevmUniversalSDK {
             this.trace?.("[FhevmUniversalSDK] FhevmCore initialized in browser");
         } else if (isNode()) {
             this.trace?.("[FhevmUniversalSDK] detected Node.js environment");
-            // Node.js: Ensure wallet is provided
             if (!this.wallet) {
                 throw new Error(
                     "FhevmUniversalSDK: Node.js environment requires a wallet to be provided"
@@ -60,25 +62,49 @@ export class FhevmUniversalSDK {
     }
 
     /**
-     * Decrypts ciphertext using FhevmCore
+     * Decrypt ciphertexts using stored or newly generated signature.
+     * Automatically generates and stores signature if missing.
      */
-    public async decrypt(ciphertexts: string[], userAddress: string, signature: string) {
+    public async decrypt(ciphertexts: string[], userAddress: string, contractAddresses: string[]) {
         if (!this.core) throw new Error("FhevmUniversalSDK: SDK not initialized");
-        return this.core.decrypt(ciphertexts, userAddress, signature);
-    }
+        if (!this.storage) throw new Error("FhevmUniversalSDK: Storage not initialized");
 
-    /**
-     * Retrieves the public key for encryption
-     */
-    public async getPublicKey() {
-        if (!this.core) throw new Error("FhevmUniversalSDK: SDK not initialized");
-        return this.core.getPublicKey();
-    }
+        let storedData = this.storage.get(userAddress, contractAddresses);
 
-    public async createEIP712(pubKey: string): Promise<string> {
-        if (!this.core) throw new Error("FhevmUniversalSDK: SDK not initialized");
+        if (!storedData || !storedData.signature) {
+            this.trace?.("[FhevmUniversalSDK] No stored signature found — generating new one...");
 
-        return await this.core.createEIP712(pubKey);
+            // Generate keypair (public/private)
+            const keyPair: any = await this.core.generateKeypair();
+
+            // Use FhevmCore to create the EIP712 signature
+            const result = await this.core.createEIP712(contractAddresses, keyPair);
+
+            storedData = {
+                publicKey: keyPair.publicKey,
+                privateKey: keyPair.privateKey,
+                signature: result.signature,
+                startTimestamp: result.startTimestamp,
+                durationDays: result.durationDays,
+                userAddress: result.userAddress,
+                contractAddresses: result.contractAddresses,
+                eip712: result.eip712,
+            };
+
+            // Save it for reuse
+            this.storage.set(userAddress, contractAddresses, storedData);
+        }
+
+        return this.core.decrypt(
+            ciphertexts,
+            storedData.contractAddresses,
+            storedData.userAddress,
+            storedData.privateKey,
+            storedData.publicKey,
+            storedData.startTimestamp,
+            storedData.durationDays,
+            storedData.signature,
+        );
     }
 
     public async publicDecrypt(ciphertext: string): Promise<string> {

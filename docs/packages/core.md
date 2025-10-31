@@ -1,184 +1,132 @@
 # Core
 
-The `@fhevm-sdk/core` package provides the universal SDK for interacting with FHEVM (Fully Homomorphic Encryption Virtual Machine). It handles encryption, decryption, and manages the communication between your application and FHEVM smart contracts.
+`@fhevm/sdk` - The core Universal SDK for integrating Fully Homomorphic Encryption Virtual Machine (FHEVM) into your dApps and services.
+It provides a unified interface for encryption, decryption, signature management, and relayer communication - compatible across Node.js, browsers, and multiple frontend frameworks.
 
 ## Overview
 
-The core package automatically detects your environment (browser or Node.js) and initializes the appropriate encryption handlers. It provides a unified API for:
+`FhevmUniversalSDK` automatically detects your environment and initializes FHEVM components with minimal setup.
+It supports both frontend (React, Vue, Next.js) and backend (Node.js) environments through a single class.
 
-- Encrypting data before sending to smart contracts
-- Decrypting encrypted responses from contracts
-- Managing encryption keys and proofs
-- Handling EIP-712 signatures for secure operations
+### Key Features
+
+- Universal Environment Support - Works in both Node.js and browser contexts
+- Native FHE Encryption - Handles input encryption and proof generation
+- Automated Signature Management - Generates, signs, and caches EIP712 payloads
+- Public Key Storage - Local caching of user public keys and signatures
+- Extendable Core - Built on top of `@zama-ai/relayer-sdk`
+
+## Installation
+
+``` bash
+pnpm add @fhevm/sdk
+# or
+npm install @fhevm/sdk
+
+```
 
 ## Initialization
 
-### Basic Setup
+``` ts
+import { FhevmUniversalSDK } from "@fhevm/sdk";
 
-```typescript
-import { FhevmUniversalSDK } from '@fhevm-sdk/core';
+// optional: your wallet implementation (ethers.js, viem, etc.)
+import { wallet } from "./wallet";
 
-const sdk = new FhevmUniversalSDK(config, wallet, trace);
-await sdk.init(contractAddress, durationDays);
+const sdk = new FhevmUniversalSDK(
+  { relayerUrl: "https://relayer.zama.ai" },
+  wallet,
+  console.log // optional trace logger
+);
+
+// initialize SDK
+await sdk.init("0xContractAddressHere");
+
 ```
 
-**Parameters:**
-- `config`: Configuration object with network and encryption settings
-- `wallet`: (Optional in browser, Required in Node.js) Wallet adapter for signing
-- `trace`: (Optional) Debug logging function
+- In Node.js, you must provide a wallet instance.
+- In Browser, it auto-detects injected wallet providers (e.g., MetaMask).
 
-### `init(contractAddress, durationDays)`
+## 🔐 Encrypt Inputs
 
-Initializes the SDK and prepares encryption keys.
+Encrypt multiple typed values into a single FHE buffer and generate ciphertext handles + a proof to submit with your transaction.
 
-- `contractAddress`: The FHEVM contract address to interact with
-- `durationDays`: (Optional) Key validity duration, defaults to 10 days
-
-```typescript
-await sdk.init('0x1234...', 7);
-```
-
-## Encryption
-
-### `encryptInputs(userAddress, inputs)`
-
-Encrypts multiple values in a single operation, returning encrypted handles and proof.
-
-**Parameters:**
-- `userAddress`: Address of the user performing encryption
-- `inputs`: Array of values to encrypt (max 10 items)
-
-**Returns:**
-```typescript
-{
-  handles: Uint8Array[],    // Encrypted ciphertext handles
-  inputProof: Uint8Array    // Zero-knowledge proof for verification
-}
-```
-
-**Supported Types:**
-- `bool`: Boolean values
-- `u8`, `u16`, `u32`, `u64`, `u128`, `u256`: Unsigned integers
-- `address`: Ethereum addresses
-
-**Example:**
-
-```typescript
-const result = await sdk.encryptInputs(userAddress, [
-  { type: 'u32', value: 42 },
-  { type: 'bool', value: true },
-  { type: 'address', value: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb' }
+``` ts
+const ciphertexts = await sdk.encryptInputs(userAddress, [
+  { type: "u64", value: 42 },
+  { type: "bool", value: true },
+  { type: "address", value: "0xabc123..." },
 ]);
 
-// Use handles in contract call
-await contract.submitEncrypted(result.handles, result.inputProof);
 ```
 
-**Note:** Maximum 10 inputs per call. For more values, make multiple calls.
+### 🔍 Description
 
-## Decryption
+- Creates a relayer encryption buffer linked to the given userAddress.
+- Adds typed inputs (`bool`, `u8`, `u16`, `u32`, `u64`, `u128`, `u256`, or `address`) into the buffer.
+- Encrypts them using the FHEVM public key and generates an input proof.
+- Returns a set of ciphertext handles (for smart contract input) and a single proof (for validation).
+- ⚠️ Supports up to 10 inputs per encryption to optimize relayer size.
 
-### `decrypt(ciphertexts, userAddress, signature)`
+## 🔓 Decrypt Ciphertexts
 
-Decrypts encrypted values returned from smart contracts.
+Decrypts one or more ciphertexts using the user’s FHE keypair and signature.
+If no valid keypair or signature is found, a new one is automatically generated and cached.
 
-**Parameters:**
-- `ciphertexts`: Array of encrypted values from contract
-- `userAddress`: Address requesting decryption
-- `signature`: EIP-712 signature authorizing decryption
-
-**Returns:** Decrypted values
-
-```typescript
+``` ts
 const decrypted = await sdk.decrypt(
-  ['0xabcd...', '0xef01...'],
+  [ciphertext1, ciphertext2],
   userAddress,
-  signature
+  ["0xContractAddress"]
 );
+
+console.log("Decrypted values:", decrypted);
+
 ```
 
-### `publicDecrypt(ciphertext)`
+### 🔍 Description
 
-Decrypts a single publicly accessible ciphertext.
+- Retrieves or generates a user keypair (public/private) for decryption.
+- Creates or reuses an EIP-712 signature that authorizes decryption for the specified contracts.
+- Returns plaintext values in the same order as provided ciphertexts.
+- 💾 Keys and signatures are stored in local cache (PublicKeyStorage) to prevent re-signing each time.
 
-```typescript
-const value = await sdk.publicDecrypt('0xabcd...');
+## 🧩 Public Decryption
+
+Decrypts ciphertexts that were explicitly marked as publicly decryptable in the smart contract.
+Unlike `decrypt()`, this method does not require a user’s private key or signature.
+
+``` ts
+const plaintext = await sdk.publicDecrypt(ciphertext);
+console.log("Public decrypted value:", plaintext);
 ```
 
-## Key Management
+### 🔍 Description
 
-### `getPublicKey()`
+- Calls the FHEVM’s public decryption mechanism.
+- Intended for ciphertexts generated with publicDecrypt permissions on-chain.
+- Returns a readable plaintext string (decoded from ciphertext).
 
-Retrieves the current public key used for encryption.
+## 🧩 Internal Helpers
 
-```typescript
-const pubKey = await sdk.getPublicKey();
-```
+### `init(contractAddress, durationDays?)`
 
-### `createEIP712(pubKey)`
+- Detects current runtime (Node.js or Browser)
+- Initializes `FhevmCore` instance with provided configuration and contract address
+- Optional `durationDays` defines how long cached keys/signatures remain valid (default: 365 days)
 
-Creates an EIP-712 signature for the given public key, required for decryption authorization.
+### `prepareEncryptionBuffer(userAddress)`
 
-```typescript
-const signature = await sdk.createEIP712(pubKey);
-```
+- Creates a relayer-linked buffer for sequential encryption operations
+- Used internally by `encryptInputs()`
 
-## Environment Support
+## 🧠 Class Reference
 
-The SDK works in both browser and Node.js environments:
+`class FhevmUniversalSDK`
 
-- **Browser**: Automatically uses Web Crypto API and browser wallet
-- **Node.js**: Requires a wallet adapter to be provided in the constructor
-
-```typescript
-// Node.js example with wallet
-import { Wallet } from 'ethers';
-
-const wallet = new Wallet(privateKey);
-const sdk = new FhevmUniversalSDK(config, wallet);
-```
-
-## Error Handling
-
-Common errors and solutions:
-
-**"SDK not initialized"**
-- Call `await sdk.init()` before using any methods
-
-**"Node.js environment requires a wallet"**
-- Provide a wallet adapter in the constructor when running in Node.js
-
-**"max input length exceeded"**
-- `encryptInputs()` supports maximum 10 inputs per call
-
-## Usage Example
-
-```typescript
-import { FhevmUniversalSDK } from '@fhevm-sdk/core';
-
-// Initialize
-const sdk = new FhevmUniversalSDK(config, wallet);
-await sdk.init(contractAddress);
-
-// Encrypt data
-const encrypted = await sdk.encryptInputs(userAddress, [
-  { type: 'u32', value: 100 },
-  { type: 'bool', value: true }
-]);
-
-// Send to contract
-const tx = await contract.processEncrypted(
-  encrypted.handles,
-  encrypted.inputProof
-);
-await tx.wait();
-
-// Decrypt result
-const pubKey = await sdk.getPublicKey();
-const signature = await sdk.createEIP712(pubKey);
-const result = await sdk.decrypt(
-  [contractReturnValue],
-  userAddress,
-  signature
-);
-```
+| Method                                                 | Description                                         |
+| ------------------------------------------------------ | --------------------------------------------------- |
+| `init(contractAddress, durationDays?)`                 | Initializes the SDK for current environment         |
+| `encryptInputs(userAddress, inputs)`                   | Encrypts an array of typed inputs                   |
+| `decrypt(ciphertexts, userAddress, contractAddresses)` | Decrypts ciphertexts using cached or new signatures |
+| `publicDecrypt(ciphertext)`                            | Performs public decryption (non-private)            |

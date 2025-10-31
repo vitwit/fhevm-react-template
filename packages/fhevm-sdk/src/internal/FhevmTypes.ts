@@ -93,16 +93,23 @@ export interface FhevmInstance {
     prepareEncryptionBuffer: (userAddress: string) => Promise<RelayerEncryptedInput>;
 
     /** Decrypts a ciphertext string */
-    decrypt: (cyphertexts: string[],
+    decrypt: (
+        cyphertexts: string[],
+        contractAddresses: string[],
         userAddress: string,
-        signature: string) => Promise<FhevmDecryptionResult>;
-
-    /** Returns the public key for encryption */
-    getPublicKey: () => Promise<string>;
+        privateKey: string,
+        publicKey: string,
+        startTimestamp: number,
+        durationDays: number,
+        signature: string,
+    ) => Promise<FhevmDecryptionResult>;
 
     publicDecrypt(ciphertext: string): Promise<string>
 
     getRelayerInstance(): Promise<FhevmRelayerInstance>
+
+    generateKeypair(): Promise<any>
+
 }
 
 /**
@@ -116,7 +123,7 @@ export interface FhevmSDKContext {
     wallet?: FhevmWallet;
 
     /** SDK configuration */
-    config: FhevmConfig;
+    config: ZamaNetworkConfig;
 }
 
 export type HandleContractPair = {
@@ -193,3 +200,46 @@ export type EncryptionInput =
     | { type: "u128"; value: number | bigint }
     | { type: "u256"; value: number | bigint }
     | { type: "address"; value: string };
+
+
+
+export type FhevmDecryptionSignatureType = {
+    publicKey: string;
+    privateKey: string;
+    signature: string;
+    startTimestamp: number; // Unix timestamp in seconds
+    durationDays: number;
+    userAddress: `0x${string}`;
+    contractAddresses: `0x${string}`[];
+    eip712: EIP712Type;
+};
+
+export type EIP712Type = {
+    domain: {
+        chainId: number;
+        name: string;
+        verifyingContract: `0x${string}`;
+        version: string;
+    };
+
+    message: any;
+    primaryType: string;
+    types: {
+        [key: string]: {
+            name: string;
+            type: string;
+        }[];
+    };
+};
+
+export type ZamaNetworkConfig = {
+  aclContractAddress: string;
+  kmsContractAddress: string;
+  inputVerifierContractAddress: string;
+  verifyingContractAddressDecryption: string;
+  verifyingContractAddressInputVerification: string;
+  chainId: number;
+  gatewayChainId: number;
+  network: string;
+  relayerUrl: string;
+};

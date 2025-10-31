@@ -1,6 +1,9 @@
-import { hexlify } from "ethers";
 import { Fhevm, FhevmSDKContext } from "../internal/Fhevm.js";
-import type { FhevmConfig, FhevmWallet, FhevmInstance, TraceType, RelayerEncryptedInput } from "../internal/FhevmTypes.js";
+import type {
+  FhevmWallet, FhevmInstance, TraceType, RelayerEncryptedInput,
+  FhevmDecryptionSignatureType,
+  ZamaNetworkConfig
+} from "../internal/FhevmTypes.js";
 import { RelayerSDKLoader } from "../internal/RelayerSDKLoader.js";
 
 /**
@@ -16,7 +19,7 @@ export class FhevmCore {
 
   public instance?: FhevmInstance;
 
-  constructor(config: FhevmConfig, contractAddress: string, wallet?: FhevmWallet, durationDays: number = 10,
+  constructor(config: ZamaNetworkConfig, contractAddress: string, wallet?: FhevmWallet, durationDays: number = 365,
     trace?: TraceType) {
     this.context = { config, wallet };
 
@@ -44,8 +47,7 @@ export class FhevmCore {
         await sdkModule.initSDK();
       }
       this.context.relayerSDK = await sdkModule.createInstance({
-        // TODO: enforce this.context.config contains all the fields passed properly
-        ...(sdkModule.SepoliaConfig || {}),
+        ...(this.context.config || sdkModule.SepoliaConfig),
       });
 
 
@@ -61,7 +63,7 @@ export class FhevmCore {
     this.trace?.("[FhevmCore] Relayer SDK initialized successfully");
 
     // Create the Fhevm instance
-    this.instance = new Fhevm(this.context, this.contractAddress, this.durationDays, this.trace);
+    this.instance = new Fhevm(this.context, this.contractAddress, this.trace);
     this.trace?.("[FhevmCore] FHEVM instance initialized successfully");
   }
 
@@ -71,51 +73,65 @@ export class FhevmCore {
     return this.instance.prepareEncryptionBuffer(userAddress);
   }
 
-  public async decrypt(ciphertexts: string[], userAddress: string, signature: string) {
+  public async decrypt(
+    ciphertexts: string[],
+    contractAddresses: string[],
+    userAddress: string,
+    privateKey: string,
+    publicKey: string,
+    startTimestamp: number,
+    durationDays: number,
+    signature: string,
+  ) {
     if (!this.instance) throw new Error("FhevmCore: SDK not initialized. Call init() first.");
     this.trace?.("[FhevmCore] decrypt called");
 
-    return this.instance.decrypt(ciphertexts, userAddress, signature);
+    return this.instance.decrypt(ciphertexts, contractAddresses, userAddress, privateKey, publicKey, startTimestamp, durationDays, signature);
   }
 
-  public async getPublicKey() {
-    if (!this.instance) throw new Error("FhevmCore: SDK not initialized. Call init() first.");
-    this.trace?.("[FhevmCore] getPublicKey called");
-    return this.instance.getPublicKey();
-  }
-
-  public async createEIP712(publicKey: any): Promise<string> {
+  public async createEIP712(contractAddresses: string[], keyPair: any): Promise<FhevmDecryptionSignatureType> {
     if (!this.instance) throw new Error("FhevmCore: SDK not initialized. Call init() first.");
     this.trace?.("[FhevmCore] createEIP712 called");
 
     const relayerInstance = await this.instance.getRelayerInstance()
 
-    const startTimestamp = Math.floor(Date.now() / 1000).toString();
-    const contractAddresses = [this.contractAddress];
+    const startTimestamp = Math.floor(Date.now() / 1000);
     const eip712 = relayerInstance.createEIP712(
-      hexlify(publicKey.publicKey),
+      keyPair.publicKey,
       contractAddresses,
       startTimestamp,
       this.durationDays
     );
 
     if (!this.context.wallet?.signTypedData) throw new Error("FhevmCore: Wallet is not provided. Call init() first.");
-
+    const userAddress: string = this.context.wallet.address
     // 3. Sign using ethers Signer (signTypedData)
     const signature = await this.context.wallet.signTypedData(
       eip712.domain,
       { UserDecryptRequestVerification: eip712.types.UserDecryptRequestVerification },
       eip712.message
     );
-    // Remove 0x prefix
-    const sig = signature.replace(/^0x/, "");
 
-    return sig;
+    return {
+      publicKey: keyPair.publicKey,
+      privateKey: keyPair.privateKey,
+      contractAddresses: contractAddresses as `0x${string}`[],
+      startTimestamp,
+      durationDays: this.durationDays,
+      signature,
+      eip712,
+      userAddress: userAddress as `0x${string}`,
+    };
   }
 
   public async publicDecrypt(ciphertext: string): Promise<string> {
     if (!this.instance) throw new Error("FhevmCore: SDK not initialized. Call init() first.");
     this.trace?.("[FhevmCore] publicDecrypt called");
     return this.instance.publicDecrypt(ciphertext);
+  }
+
+  public async generateKeypair(): Promise<any> {
+    if (!this.instance) throw new Error("FhevmCore: SDK not initialized. Call init() first.");
+    return this.instance.generateKeypair();
   }
 }

@@ -1,19 +1,47 @@
-# FHEVM React Template
+# FHEVM Universal SDK
 
-A minimal React frontend template for building FHEVM-enabled decentralized applications (dApps). This template provides a simple development interface for interacting with FHEVM smart contracts, specifically the `FHECounter.sol` contract.
+A unified monorepo for building decentralized applications powered by Fully Homomorphic Encryption (FHE) using the FHEVM (Fully Homomorphic Encryption Virtual Machine).
+It includes SDKs, shared contract artifacts, and example apps across multiple frameworks - all demonstrating private computation on encrypted blockchain data.
 
 ## 🚀 What is FHEVM?
 
-FHEVM (Fully Homomorphic Encryption Virtual Machine) enables computation on encrypted data directly on Ethereum. This template demonstrates how to build dApps that can perform computations while keeping data private.
+FHEVM extends Ethereum to support computation directly on encrypted data, enabling true on-chain privacy.
+With FHEVM, smart contracts can operate on ciphertexts without ever decrypting them - preserving user confidentiality while maintaining public verifiability.
+
+This SDK simplifies integrating FHEVM into React, Vue, Node.js, or Next.js environments.
 
 ## ✨ Features
 
-- **🔐 FHEVM Integration**: Built-in support for fully homomorphic encryption
-- **⚛️ React + Next.js**: Modern, performant frontend framework
-- **🎨 Tailwind CSS**: Utility-first styling for rapid UI development
-- **🔗 RainbowKit**: Seamless wallet connection and management
-- **🌐 Multi-Network Support**: Works on both Sepolia testnet and local Hardhat node
-- **📦 Monorepo Structure**: Organized packages for SDK, contracts, and frontend
+- **Universal SDK** - A single SDK that works across multiple environments, including React, Node.js, Next.js, and Vue.
+- **FHEVM Integration** - Provides native support for Fully Homomorphic Encryption (FHE) smart contracts.
+- **@fhevm/shared Package** - Contains common TypeScript types, ABIs, and utility functions shared across all framework packages.
+- **Modular Architecture** - Each framework (React, Node.js, Next.js, Vue) is organized as a separate package for clean isolation and easier maintenance.
+- **Hardhat Template** - Includes a preconfigured Hardhat setup based on the fhevm-hardhat-template for writing and deploying FHE contracts.
+- **Cross-Framework Examples** - Provides reference implementations for:
+   - Node.js (backend interaction)
+   - React (frontend interaction)
+   - Next.js (full-stack example)
+   - Vue (frontend interaction)
+
+   
+## 🧰 Monorepo Structure
+
+```
+fhevm-universal-sdk/
+|
+├── docs/                     # Vitepress docs
+├── packages/
+│   ├── fhevm-sdk/            # Core SDK (encryption, decryption, FHEVM tools)
+│   ├── fhevm-react/          # React hooks + providers
+│   ├── fhevm-node-demo/      # Node.js demo using FHEVM contracts
+│   ├── fhevm-vue-demo/       # Vue demo app
+│   ├── fhevm-next-demo/      # Next.js demo app
+│   ├── fhevm-shared/         # Shared contracts, ABIs, types
+│   └── hardhat/              # Contract deployment & Hardhat environment
+└── scripts/
+    └── generateAbis.ts       # Generates shared ABI JSON from compiled contracts
+
+```
 
 ## 📋 Prerequisites
 
@@ -23,10 +51,11 @@ Before you begin, ensure you have:
 - **pnpm** package manager
 - **MetaMask** browser extension
 - **Git** for cloning the repository
+- **Infura / Alchemy key** (for testnet RPCs)
 
-## 🛠️ Quick Start
+## ⚙️ Setup & Installation
 
-### 1. Clone and Setup
+### 1. Clone and initialize
 
 ```bash
 # Clone the repository
@@ -40,7 +69,11 @@ git submodule update --init --recursive
 pnpm install
 ```
 
-### 2. Environment Configuration
+### 2. Write Your Smart Contracts
+
+Once the submodules are synced, go to the contracts directory and write or modify your own FHE smart contracts (e.g. `FHECounter.sol`).
+
+### 3. Environment Configuration
 
 Set up your Hardhat environment variables by following the [FHEVM documentation](https://docs.zama.ai/protocol/solidity-guides/getting-started/setup#set-up-the-hardhat-configuration-variables-optional):
 
@@ -73,7 +106,31 @@ pnpm deploy:sepolia
 pnpm start
 ```
 
-### 4. Connect MetaMask
+### 4. Generate Shared ABI
+
+Once deployment is successful, generate the shared ABI file that both your backend (Node) and frontend (React) will use.
+
+``` bash
+pnpm generate
+```
+
+This will produce a JSON file (e.g. `abis.json`) in the shared directory:
+
+``` json
+{
+  "deployedContracts": {
+    "11155111": {
+      "FHECounter": {
+        "address": "0xYourContractAddress",
+        "abi": [ ... ]
+      }
+    }
+  }
+}
+
+```
+
+### 5. Connect MetaMask
 
 1. Open [http://localhost:3000](http://localhost:3000) in your browser
 2. Click "Connect Wallet" and select MetaMask
@@ -83,12 +140,6 @@ pnpm start
    - **Chain ID**: `31337`
    - **Currency Symbol**: `ETH`
 
-### ⚠️ Sepolia Production note
-
-- In production, `NEXT_PUBLIC_ALCHEMY_API_KEY` must be set (see `packages/nextjs/scaffold.config.ts`). The app throws if missing.
-- Ensure `packages/nextjs/contracts/deployedContracts.ts` points to your live contract addresses.
-- Optional: set `NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID` for better WalletConnect reliability.
-- Optional: add per-chain RPCs via `rpcOverrides` in `packages/nextjs/scaffold.config.ts`.
 
 ## 🔧 Troubleshooting
 

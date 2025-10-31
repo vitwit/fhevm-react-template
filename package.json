@@ -14,7 +14,8 @@
       "packages/fhevm-vue-demo",
       "packages/fhevm-next-demo",
       "packages/fhevm-shared",
-      "packages/fhevm-vue"
+      "packages/fhevm-vue",
+      "docs"
     ]
   },
   "scripts": {
@@ -29,8 +30,6 @@
     "sdk:test": "pnpm --filter ./packages/fhevm-sdk test",
     "sdk:test:watch": "pnpm --filter ./packages/fhevm-sdk test:watch",
     "sdk:clean": "pnpm --filter ./packages/fhevm-sdk clean",
-    "shared:build":"pnpm --filter ./packages/fhevm-shared build",
-    "react:build":"pnpm --filter ./packages/fhevm-react build",
     "generate": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' ./scripts/generateContracts.ts",
     "hardhat:chain": "pnpm --filter ./packages/hardhat chain",
     "hardhat:check-types": "pnpm --filter ./packages/hardhat check-types",
@@ -47,11 +46,12 @@
     "hardhat:verify": "pnpm --filter ./packages/hardhat verify",
     "hardhat:verify:sepolia": "pnpm --filter ./packages/hardhat verify:sepolia",
     "lint": "pnpm next:lint && pnpm hardhat:lint",
-    "next:build": "pnpm --filter ./packages/nextjs build",
-    "next:check-types": "pnpm --filter ./packages/nextjs check-types",
-    "next:format": "pnpm --filter ./packages/nextjs format",
-    "next:lint": "pnpm --filter ./packages/nextjs lint",
-    "next:serve": "pnpm --filter ./packages/nextjs serve",
+    "shared:build":"pnpm --filter ./packages/fhevm-shared build",
+    "react:build":"pnpm --filter ./packages/fhevm-react build",
+    "next-demo:build":"pnpm --filter ./packages/fhevm-next-demo build",
+    "next-demo:dev":"pnpm --filter ./packages/fhevm-next-demo dev",
+    "node-demo:build":"pnpm --filter ./packages/fhevm-node-demo build",
+    "node-demo:dev":"pnpm --filter ./packages/fhevm-node-demo dev",
     "precommit": "lint-staged",
     "preinstall": "pnpm sdk:build",
     "start": "pnpm --filter ./packages/nextjs dev",
@@ -60,7 +60,10 @@
     "vercel:login": "pnpm --filter ./packages/nextjs vercel:login",
     "vercel:yolo": "pnpm --filter ./packages/nextjs vercel:yolo",
     "verify": "pnpm hardhat:verify",
-    "verify:sepolia": "pnpm hardhat:verify:sepolia"
+    "verify:sepolia": "pnpm hardhat:verify:sepolia",
+    "docs:build": "pnpm --filter ./docs build",
+    "docs:preview": "pnpm --filter ./docs preview",
+    "docs:dev": "pnpm --filter ./docs dev"
   },
   "dependencies": {
     "hardhat-deploy": "^0.11.45"

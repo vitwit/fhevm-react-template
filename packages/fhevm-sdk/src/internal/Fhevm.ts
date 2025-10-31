@@ -7,8 +7,6 @@ import {
   HandleContractPair,
   RelayerEncryptedInput,
 } from "./FhevmTypes.js";
-import { hexlify } from "ethers";
-
 
 export type Keypair = { publicKey: string; privateKey: string };
 
@@ -20,91 +18,43 @@ export type Keypair = { publicKey: string; privateKey: string };
 export class Fhevm implements FhevmInstance {
   private context: FhevmSDKContext;
   private trace?: TraceType;
-  private keypairCache?: Keypair;
   private contractAddress: string;
-  private durationDays: number;
+  private relayerInstance?: FhevmRelayerInstance;
 
-
-  constructor(context: FhevmSDKContext, contractAddress: string, durationDays: number = 10, trace?: TraceType) {
+  constructor(context: FhevmSDKContext, contractAddress: string, trace?: TraceType) {
     this.context = context;
     this.trace = trace;
     this.contractAddress = contractAddress;
-    this.durationDays = durationDays;
   }
 
-  private isNodeEnv(): boolean {
-    return typeof process !== "undefined" &&
-      process.release?.name === "node";
-  }
-
-  private async loadNodeModules(): Promise<any> {
-    if (!this.isNodeEnv()) return null;
-    const fs = await import("fs");
-    const path = await import("path");
-    return { fs: fs.default, path: path.default };
-  }
-
-  private async getKeypairFilePath() {
-    const mods = await this.loadNodeModules();
-    if (!mods) throw new Error("Not running in Node");
-    const { path } = mods;
-    return path.resolve(process.cwd(), ".fhevm_keys.json");
-  }
-
-  private async loadKeypair(): Promise<Keypair | null> {
-    try {
-      if (this.isNodeEnv()) {
-        const { fs } = await this.loadNodeModules();
-        const filePath = await this.getKeypairFilePath();
-        if (fs.existsSync(filePath)) {
-          const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-          return data;
-        }
-      } else if (typeof localStorage !== "undefined") {
-        const data = localStorage.getItem("fhevm_keypair");
-        if (data) return JSON.parse(data);
-      }
-    } catch (err) {
-      this.trace?.("[Fhevm] Failed to load keypair", err);
-    }
-    return null;
-  }
-
-  private async saveKeypair(keypair: Keypair): Promise<void> {
-    try {
-      if (this.isNodeEnv()) {
-        const { fs } = await this.loadNodeModules();
-        const filePath = await this.getKeypairFilePath();
-        fs.writeFileSync(filePath, JSON.stringify(keypair, null, 2));
-      } else if (typeof localStorage !== "undefined") {
-        localStorage.setItem("fhevm_keypair", JSON.stringify(keypair));
-      }
-    } catch (err) {
-      this.trace?.("[Fhevm] Failed to save keypair", err);
-    }
-  }
 
   /**
-   * Returns a usable relayer instance.
-   * Handles both Node (createInstance) and Browser (already initialized) environments
-   */
+     * Returns (and caches) a relayer instance.
+     * The first call initializes it; subsequent calls reuse the cached one.
+     */
   public async getRelayerInstance(): Promise<FhevmRelayerInstance> {
+    if (this.relayerInstance) {
+      this.trace?.("[Fhevm] Using cached relayer instance");
+      return this.relayerInstance;
+    }
+
     if (!this.context.relayerSDK) {
       throw new Error("Fhevm: relayerSDK is not initialized");
     }
 
-    const sdk = this.context.relayerSDK as any; // temporary cast to bypass TS for runtime checks
+    const sdk = this.context.relayerSDK as any;
 
-    // Node: SDK module exposes createInstance()
+    // Node: SDK exposes createInstance()
     if (typeof sdk.createInstance === "function") {
-      this.trace?.("[Fhevm] Using createInstance() for relayer instance");
-      const instance = await sdk.createInstance();
-      return instance as FhevmRelayerInstance;
+      this.trace?.("[Fhevm] Creating new relayer instance (Node)");
+      this.relayerInstance = await sdk.createInstance();
+    } else {
+      // Browser: already initialized instance
+      this.trace?.("[Fhevm] Using pre-initialized relayer instance (Browser)");
+      this.relayerInstance = sdk as FhevmRelayerInstance;
     }
 
-    // Browser: already initialized instance
-    this.trace?.("[Fhevm] Using pre-initialized relayer instance");
-    return sdk as FhevmRelayerInstance;
+    return this.relayerInstance!;
   }
 
   public async prepareEncryptionBuffer(userAddress: string): Promise<RelayerEncryptedInput> {
@@ -122,7 +72,12 @@ export class Fhevm implements FhevmInstance {
 
   public async decrypt(
     cyphertexts: string[],
+    contractAddresses: string[],
     userAddress: string,
+    privateKey: string,
+    publicKey: string,
+    startTimestamp: number,
+    durationDays: number,
     signature: string,
   ): Promise<FhevmDecryptionResult> {
     this.trace?.("[Fhevm] decrypt called");
@@ -130,29 +85,10 @@ export class Fhevm implements FhevmInstance {
     try {
       const instance = await this.getRelayerInstance();
 
-      // Try loading cached or persisted keypair
-      if (!this.keypairCache) {
-        this.keypairCache = await this.loadKeypair() || undefined;
-      }
-
-      if (!this.keypairCache) {
-        this.trace?.("[Fhevm] Generating new keypair");
-        const keypair = await instance.generateKeypair();
-        this.keypairCache = {
-          publicKey: keypair.publicKey,
-          privateKey: keypair.privateKey,
-        };
-        this.saveKeypair(this.keypairCache);
-      }
-
-      const { publicKey, privateKey } = this.keypairCache;
-
       let handles: HandleContractPair[] = cyphertexts.map(i => ({
-        contractAddress: this.contractAddress,
+        contractAddress: contractAddresses[0],
         handle: i
       }));
-
-      const startTimestamp = Math.floor(Date.now() / 1000).toString();
 
       const plaintext = await instance.userDecrypt(
         handles,
@@ -162,26 +98,12 @@ export class Fhevm implements FhevmInstance {
         [this.contractAddress],
         userAddress,
         startTimestamp,
-        this.durationDays
+        durationDays
       );
 
       return { plaintext };
     } catch (err) {
       this.trace?.("[Fhevm] decrypt error", err);
-      throw err;
-    }
-  }
-
-  public async getPublicKey(): Promise<string> {
-    this.trace?.("[Fhevm] getPublicKey called");
-    try {
-      const instance = await this.getRelayerInstance();
-      if (typeof instance.getPublicKey === "function") {
-        return await instance.getPublicKey();
-      }
-      throw new Error("Fhevm: relayer instance does not expose getPublicKey()");
-    } catch (err) {
-      this.trace?.("[Fhevm] getPublicKey error", err);
       throw err;
     }
   }
@@ -195,6 +117,19 @@ export class Fhevm implements FhevmInstance {
       return decryptedText;
     } catch (err) {
       this.trace?.("[Fhevm] public decrypt error", err);
+      throw err;
+    }
+  }
+
+  public async generateKeypair(): Promise<void> {
+    try {
+      const instance = await this.getRelayerInstance();
+
+      this.trace?.("[Fhevm] Generating new keypair");
+      const keypair = await instance.generateKeypair();
+      return keypair;
+    } catch (err: any) {
+      this.trace?.("[Fhevm] key generation error", err);
       throw err;
     }
   }

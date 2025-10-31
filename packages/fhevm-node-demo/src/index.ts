@@ -33,29 +33,38 @@ async function main() {
   const contract = new ethers.Contract(address, abi, walletWithProvider);
 
   // Initialize SDK
+  console.log("Initializing sdk...")
   const sdk = new FhevmUniversalSDK({ network: "devnet" }, walletWithProvider);
   await sdk.init(address);
+  console.log("SDK initialized...")
 
   const handles = await sdk.encryptInputs(wallet.address, [
     { type: "u32", value: 1 },
   ]);
 
+  console.log("Submitting increment transaction...")
   const tx = await contract.increment(handles.handles[0], handles.inputProof);
   await tx.wait();
-  console.log("Increment confirmed:", tx.hash);
+  console.log("Increment transaction hash:", tx.hash);
 
-  const counter = await contract.getCount();
-  console.log(counter);
+  let counter = await contract.getCount();
+  console.log(`Counter ciphertext after increment = `, counter);
 
-  const publicKey = await sdk.getPublicKey();
-  console.log(publicKey)
-  const signature = await sdk.createEIP712(publicKey);
+  let decrypted = await sdk.decrypt([counter], wallet.address, [address]);
 
-  console.log(signature);
+  console.log(`Encrypted counter = `, decrypted.plaintext[counter]);
 
-  const decrypted = await sdk.decrypt([counter], wallet.address, signature);
+  console.log("Submitting decrement transaction...")
+  const tx1 = await contract.decrement(handles.handles[0], handles.inputProof);
+  await tx1.wait();
+  console.log("Decrement transaction hash:", tx1.hash);
 
-  console.log(decrypted.plaintext);
+  counter = await contract.getCount();
+  console.log(`Counter ciphertext after decrement = `, counter);
+
+  decrypted = await sdk.decrypt([counter], wallet.address, [address]);
+
+  console.log(`Decrypted counter = `, decrypted.plaintext[counter]);
 }
 
 main().catch(console.error);

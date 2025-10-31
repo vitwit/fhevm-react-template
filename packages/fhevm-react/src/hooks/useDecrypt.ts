@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useFhevm } from "./../context/FhevmProvider";
 
 export function useDecrypt() {
-    const { sdk, address, initialized } = useFhevm();
+    const { sdk, address, initialized, contractAddress } = useFhevm();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -16,9 +16,7 @@ export function useDecrypt() {
             setLoading(true);
             setError(null);
             try {
-                const publicKey = await sdk.getPublicKey();
-                const signature = await sdk.createEIP712(publicKey);
-                const decrypted = await sdk.decrypt(ciphertexts, address, signature);
+                const decrypted = await sdk.decrypt(ciphertexts, address, [contractAddress]);
                 return decrypted;
             } catch (err: any) {
                 setError(err.message || "Decryption failed");

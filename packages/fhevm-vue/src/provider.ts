@@ -7,6 +7,7 @@ export interface FhevmContext {
     provider: Ref<ethers.Provider | null>;
     signer: Ref<ethers.Signer | null>;
     address: Ref<string | null>;
+    contractAddress: Ref<string | null>;
     loading: Ref<boolean>;
     initialized: Ref<boolean>;
 }
@@ -25,6 +26,7 @@ function createFhevm(options: FhevmOptions) {
     const provider = ref<ethers.Provider | null>(null);
     const signer = ref<ethers.Signer | null>(null);
     const address = ref<string | null>(null);
+    const contractAddressRef = ref<string | null>(null);
     const loading = ref(true);
     const initialized = ref(false);
 
@@ -73,6 +75,7 @@ function createFhevm(options: FhevmOptions) {
             signer.value = _signer;
             sdk.value = fhevm;
             address.value = userAddress;
+            contractAddressRef.value = contractAddress;
             initialized.value = true;
         } catch (err) {
             console.error("FHEVM init error:", err);
@@ -90,6 +93,7 @@ function createFhevm(options: FhevmOptions) {
         address,
         loading,
         initialized,
+        contractAddress: contractAddressRef
     };
 }
 

@@ -8,6 +8,7 @@ interface FhevmContextValue {
     signer: ethers.Signer | null;
     loading: boolean; // MetaMask + setup
     initialized: boolean; // FHEVM SDK initialized
+    contractAddress: string;
     initError?: string;
     address?: string;
 }
@@ -17,6 +18,7 @@ const FhevmContext = createContext<FhevmContextValue>({
     provider: null,
     signer: null,
     loading: true,
+    contractAddress: "",
     initialized: false,
 });
 
@@ -113,8 +115,8 @@ export const FhevmProvider: React.FC<FhevmProviderProps> = ({
     }, [network, rpcUrl, contractAddress]);
 
     const value = useMemo(
-        () => ({ sdk, provider, signer, address, loading, initialized, initError }),
-        [sdk, provider, signer, address, loading, initialized, initError],
+        () => ({ sdk, provider, signer, address,contractAddress, loading, initialized, initError }),
+        [sdk, provider, signer, address,contractAddress, loading, initialized, initError],
     );
 
     return <FhevmContext.Provider value={value}>{children}</FhevmContext.Provider>;
