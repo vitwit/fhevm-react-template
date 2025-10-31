@@ -175,3 +175,10 @@ When developing with MetaMask and Hardhat, you may encounter these common issues
 > 💡 **Pro Tip**: Always restart your browser after restarting Hardhat to avoid cache issues.
 
 For more details, see the [MetaMask development guide](https://docs.metamask.io/wallet/how-to/run-devnet/).
+
+---
+
+
+For detailed guides, API references, and interactive examples, visit our comprehensive documentation site.
+
+**[📖 View Complete Documentation & Demo Examples](https://fhevm-sdk-docs.vercel.app/)**
