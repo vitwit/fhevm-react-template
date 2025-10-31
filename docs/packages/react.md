@@ -30,7 +30,6 @@ import { FhevmProvider } from "@fhevm/react";
 export default function App() {
   return (
     <FhevmProvider
-      network="testnet"
       rpcUrl="https://sepolia.infura.io/v3/<INFURA_KEY>"
       contractAddress="0xYourContractAddress"
     >
@@ -178,7 +177,6 @@ Automatically:
 
 | Prop              | Type                                 | Description                              |
 | ----------------- | ------------------------------------ | ---------------------------------------- |
-| `network`         | `"devnet" \| "testnet" \| "mainnet"` | Target FHEVM network                     |
 | `rpcUrl`          | `string`                             | RPC endpoint                             |
 | `contractAddress` | `string`                             | Address of deployed FHE-enabled contract |
 | `chainId`         | `number`                             | (optional) Ethereum chain ID             |

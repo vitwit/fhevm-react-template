@@ -15,7 +15,6 @@ export interface FhevmContext {
 const FhevmSymbol = Symbol("FhevmContext");
 
 export interface FhevmOptions {
-    network: "devnet" | "testnet" | "mainnet";
     rpcUrl: string;
     contractAddress: string;
     chainId?: number;
@@ -34,7 +33,7 @@ function createFhevm(options: FhevmOptions) {
         try {
             if (!window.ethereum) throw new Error("MetaMask not detected");
 
-            const { network, rpcUrl, contractAddress, chainId = 11155111 } = options;
+            const { rpcUrl, contractAddress, chainId = 11155111 } = options;
 
             const hexChainId = "0x" + chainId.toString(16);
             const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
@@ -68,7 +67,7 @@ function createFhevm(options: FhevmOptions) {
             const _signer = await browserProvider.getSigner();
             const userAddress = await _signer.getAddress();
 
-            const fhevm = new FhevmUniversalSDK({ network }, _signer);
+            const fhevm = new FhevmUniversalSDK(undefined, _signer);
             await fhevm.init(contractAddress);
 
             provider.value = browserProvider;

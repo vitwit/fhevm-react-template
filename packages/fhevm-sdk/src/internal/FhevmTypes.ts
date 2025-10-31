@@ -123,7 +123,7 @@ export interface FhevmSDKContext {
     wallet?: FhevmWallet;
 
     /** SDK configuration */
-    config: ZamaNetworkConfig;
+    config?: ZamaNetworkConfig;
 }
 
 export type HandleContractPair = {

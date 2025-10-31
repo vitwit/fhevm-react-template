@@ -19,7 +19,7 @@ export class FhevmUniversalSDK {
      * @param trace Optional trace function for logging
      */
     constructor(
-        private config: ZamaNetworkConfig,
+        private config?: ZamaNetworkConfig,
         private wallet?: FhevmWallet,
         trace?: TraceType
     ) {
@@ -35,7 +35,7 @@ export class FhevmUniversalSDK {
 
         if (isBrowser()) {
             this.trace?.("[FhevmUniversalSDK] detected browser environment");
-            this.core = new FhevmCore(this.config, contractAddress, this.wallet, durationDays, this.trace);
+            this.core = new FhevmCore(contractAddress, this.wallet,this.config, durationDays, this.trace);
             await this.core.init();
             this.trace?.("[FhevmUniversalSDK] FhevmCore initialized in browser");
         } else if (isNode()) {
@@ -45,7 +45,7 @@ export class FhevmUniversalSDK {
                     "FhevmUniversalSDK: Node.js environment requires a wallet to be provided"
                 );
             }
-            this.core = new FhevmCore(this.config, contractAddress, this.wallet, durationDays, this.trace);
+            this.core = new FhevmCore(contractAddress, this.wallet,this.config,  durationDays, this.trace);
             await this.core.init();
             this.trace?.("[FhevmUniversalSDK] FhevmCore initialized in Node.js");
         } else {

@@ -19,7 +19,7 @@ export class FhevmCore {
 
   public instance?: FhevmInstance;
 
-  constructor(config: ZamaNetworkConfig, contractAddress: string, wallet?: FhevmWallet, durationDays: number = 365,
+  constructor(contractAddress: string, wallet?: FhevmWallet, config?: ZamaNetworkConfig, durationDays: number = 365,
     trace?: TraceType) {
     this.context = { config, wallet };
 
@@ -46,9 +46,15 @@ export class FhevmCore {
       if (sdkModule.initSDK) {
         await sdkModule.initSDK();
       }
-      this.context.relayerSDK = await sdkModule.createInstance({
-        ...(this.context.config || sdkModule.SepoliaConfig),
-      });
+      if (this.context.config) {
+        this.context.relayerSDK = await sdkModule.createInstance({
+          ...this.context.config,
+        });
+      } else {
+        this.context.relayerSDK = await sdkModule.createInstance({
+          ...sdkModule.SepoliaConfig,
+        });
+      }
 
 
     } else if (sdkModule.initSDK && typeof sdkModule.initSDK === "function") {

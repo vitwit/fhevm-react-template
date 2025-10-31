@@ -9,9 +9,8 @@ const app = createApp(App);
 
 // Example Sepolia config
 app.use(FhevmPlugin, {
-  network: "testnet",
   rpcUrl: "https://sepolia.infura.io/v3/YOUR_KEY",
-  contractAddress: "0xYourFHECounterAddress",
+  contractAddress: "0x2F39E2bfb4d5c8d6e5503F5103C5411Ae583A032",
   chainId: 11155111,
 });
 

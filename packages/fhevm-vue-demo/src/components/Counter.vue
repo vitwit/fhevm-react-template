@@ -25,6 +25,8 @@ import { ref, watchEffect } from "vue";
 import { ethers } from "ethers";
 import { useFhevm, useEncrypt } from "@fhevm/vue";
 import { abis } from "@fhevm/shared";
+import { BrowserProvider, Contract } from "ethers";
+
 
 const { sdk, signer, address, loading } = useFhevm();
 const { encrypt } = useEncrypt();
@@ -36,9 +38,13 @@ const busy = ref(false);
 const FHECounter = abis.deployedContracts["11155111"]["FHECounter"];
 let contract: ethers.Contract | null = null;
 
-watchEffect(() => {
-  if (signer.value) {
-    contract = new ethers.Contract(FHECounter.address, FHECounter.abi, signer.value);
+watchEffect(async () => {
+  if (window.ethereum) {
+    const provider = new BrowserProvider(window.ethereum);
+    const signerInstance = await provider.getSigner();
+
+    const FHECounter = abis.deployedContracts["11155111"]["FHECounter"];
+    contract = new Contract(FHECounter.address, FHECounter.abi, signerInstance);
   }
 });
 
@@ -48,9 +54,7 @@ async function getCounter() {
 
   try {
     const encrypted = await contract.getCount();
-    const pk = await sdk.value.getPublicKey();
-    const sig = await sdk.value.createEIP712(pk);
-    const decrypted = await sdk.value.decrypt([encrypted], address.value, sig);
+    const decrypted = await sdk.value.decrypt([encrypted], address.value, [FHECounter.address]);
     counter.value = Number(decrypted.plaintext);
   } catch (err) {
     console.error("getCounter failed", err);
