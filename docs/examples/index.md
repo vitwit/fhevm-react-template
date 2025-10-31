@@ -185,21 +185,13 @@ export default function HomePage() {
 
 #### Reading Encrypted Values
 ```tsx
-  const getCounter = async () => {
+    const getCounter = async () => {
     if (!sdk || !contract || !address) return;
     setBusy(true);
-    
     try {
-      // 1. Get encrypted value from contract
       const encryptedValue = await contract.getCount();
-      
-      // 2. Get public key and create signature
-      const pk = await sdk.getPublicKey();
-      const sig = await sdk.createEIP712(pk);
-      
-      // 3. Decrypt the value
-      const decrypted = await sdk.decrypt([encryptedValue], address, sig);
-      setCounter(Number(decrypted.plaintext));
+      const decrypted = await sdk.decrypt([encryptedValue], address, [FHECounter.address]);
+      setCounter(Number(decrypted.plaintext[encryptedValue]));
     } catch (err) {
       console.error("Failed to get counter:", err);
     } finally {
@@ -219,18 +211,12 @@ export default function HomePage() {
   const changeCounter = async (method: "increment" | "decrement") => {
     if (!sdk || !contract || !address) return;
     setBusy(true);
-    
     try {
-      // 1. Encrypt the input value
       const { handles, inputProof } = await sdk.encryptInputs(address, [
         { type: "u32", value: 1 },
       ]);
-      
-      // 2. Send encrypted data to contract
       const tx = await contract[method](handles[0], inputProof);
       await tx.wait();
-      
-      // 3. Refresh counter value
       await getCounter();
     } catch (err) {
       console.error(`${method} failed:`, err);
@@ -259,34 +245,73 @@ Automatically fetch the counter value once the SDK is initialized.
 
 #### UI Rendering
 ```tsx
-  if (loading) return 🔌 Connecting to MetaMask...;
-  if (!initialized) return ⚙️ Initializing FHE SDK...;
+ 
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen text-lg text-gray-400 bg-neutral-950">
+        🔌 Connecting to MetaMask...
+      </div>
+    );
+
+  if (!initialized)
+    return (
+      <div className="flex items-center justify-center h-screen text-lg text-gray-400 bg-neutral-950">
+        ⚙️ Initializing FHE SDK...
+      </div>
+    );
 
   return (
-    
-      🔐 Encrypted Counter
-      Connected as: {address}
-      {counter === null ? "…" : counter}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-950 text-gray-100 px-4">
+      <h1 className="text-3xl sm:text-4xl font-semibold mb-2 tracking-tight">
+        Encrypted Counter
+      </h1>
+      <p className="text-sm text-gray-500 mb-10 font-mono">
+        Connected: <span className="text-blue-400">{address}</span>
+      </p>
 
-      
-        <button onClick={() => changeCounter("decrement")} disabled={busy}>
-          ➖ Decrement
-        
-        <button onClick={() => changeCounter("increment")} disabled={busy}>
-          ➕ Increment
-        
-      
+      <div className="flex flex-col items-center space-y-8">
+        <div className="text-7xl sm:text-8xl font-bold text-white tracking-tight">
+          {counter === null ? "…" : counter}
+        </div>
 
-      
-        
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => changeCounter("decrement")}
+            disabled={busy}
+            className="px-6 py-2 rounded-md border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500/50"
+          >
+            ➖ Decrement
+          </button>
+
+          <button
+            onClick={() => changeCounter("increment")}
+            disabled={busy}
+            className="px-6 py-2 rounded-md border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-500/50"
+          >
+            ➕ Increment
+          </button>
+        </div>
+
+        <button
+          onClick={getCounter}
+          disabled={busy}
+          className="mt-4 px-5 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+        >
           🔄 Refresh
-        
-      
+        </button>
 
-      {busy && ⏳ Please wait…}
-    
+        {busy && (
+          <p className="text-gray-400 animate-pulse text-sm">⏳ Please wait…</p>
+        )}
+      </div>
+
+      <footer className="mt-16 text-xs text-gray-600">
+        Built with ❤️ using <span className="text-blue-400 font-medium">Zama FHEVM</span>
+      </footer>
+    </div>
   );
 }
+
 ```
 
 **UI States:**
@@ -329,8 +354,6 @@ const { handles, inputProof } = await sdk.encryptInputs(address, [
 
 #### Decryption
 ```typescript
-const pk = await sdk.getPublicKey();
-const sig = await sdk.createEIP712(pk);
 const decrypted = await sdk.decrypt([encryptedValue], address, sig);
 ```
 
