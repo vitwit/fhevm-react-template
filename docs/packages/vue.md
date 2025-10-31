@@ -35,7 +35,6 @@ import { FhevmPlugin } from "@fhevm/vue";
 const app = createApp(App);
 
 app.use(FhevmPlugin, {
-  network: "testnet",
   rpcUrl: "https://sepolia.infura.io/v3/<INFURA_KEY>",
   contractAddress: "0xYourContractAddress",
 });

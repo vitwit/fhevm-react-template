@@ -23,7 +23,6 @@ const FhevmContext = createContext<FhevmContextValue>({
 });
 
 interface FhevmProviderProps {
-    network: "devnet" | "testnet" | "mainnet";
     rpcUrl: string;
     contractAddress: string;
     chainId?: number;
@@ -31,7 +30,6 @@ interface FhevmProviderProps {
 }
 
 export const FhevmProvider: React.FC<FhevmProviderProps> = ({
-    network,
     rpcUrl,
     contractAddress,
     chainId = 11155111,
@@ -93,7 +91,7 @@ export const FhevmProvider: React.FC<FhevmProviderProps> = ({
                 const walletAddress = await signer.getAddress();
 
                 // Create SDK instance
-                const fhevm = new FhevmUniversalSDK({ network }, signer);
+                const fhevm = new FhevmUniversalSDK(undefined, signer);
 
                 // Initialize SDK for a specific contract
                 await fhevm.init(contractAddress);
@@ -112,11 +110,11 @@ export const FhevmProvider: React.FC<FhevmProviderProps> = ({
         };
 
         init();
-    }, [network, rpcUrl, contractAddress]);
+    }, [rpcUrl, contractAddress]);
 
     const value = useMemo(
-        () => ({ sdk, provider, signer, address,contractAddress, loading, initialized, initError }),
-        [sdk, provider, signer, address,contractAddress, loading, initialized, initError],
+        () => ({ sdk, provider, signer, address, contractAddress, loading, initialized, initError }),
+        [sdk, provider, signer, address, contractAddress, loading, initialized, initError],
     );
 
     return <FhevmContext.Provider value={value}>{children}</FhevmContext.Provider>;

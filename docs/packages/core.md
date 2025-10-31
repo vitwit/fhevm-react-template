@@ -34,10 +34,10 @@ import { FhevmUniversalSDK } from "@fhevm/sdk";
 import { wallet } from "./wallet";
 
 const sdk = new FhevmUniversalSDK(
-  { relayerUrl: "https://relayer.zama.ai" },
-  wallet,
-  console.log // optional trace logger
-);
+    relayerConfig,
+    wallet,
+    console.log // optional trace logger
+  );
 
 // initialize SDK
 await sdk.init("0xContractAddressHere");

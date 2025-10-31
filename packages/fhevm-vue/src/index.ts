@@ -1,3 +1,3 @@
-export { FhevmPlugin, useFhevm } from "./provider";
+export { useFhevm } from "./composables/useFhevm";
 export { useEncrypt } from "./composables/useEncrypt";
-export { useDecrypt } from "./composables/useDecrypt";
+export * from "./provider";

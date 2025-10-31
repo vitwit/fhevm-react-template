@@ -34,7 +34,7 @@ async function main() {
 
   // Initialize SDK
   console.log("Initializing sdk...")
-  const sdk = new FhevmUniversalSDK({ network: "devnet" }, walletWithProvider);
+  const sdk = new FhevmUniversalSDK(undefined,walletWithProvider);
   await sdk.init(address);
   console.log("SDK initialized...")
 
